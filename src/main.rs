@@ -5,7 +5,7 @@ use colored::Colorize;
 use rusqlite::Connection;
 use tracing::{event, Level};
 
-fn main() {
+fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_max_level(Level::DEBUG)
         .init();
@@ -21,20 +21,23 @@ fn main() {
     // 校验一下路径
     if !db_path.exists() {
         event!(Level::ERROR, "数据库文件 {:?} 不存在", db_path);
-        return;
+        return Ok(());
     }
     if !db_path.is_file() {
         event!(Level::ERROR, "{:?} 不是一个文件", db_path);
-        return;
+        return Ok(());
     }
     // 打开数据库
     let conn = match open_db(&db_path) {
         Ok(conn) => conn,
         Err(e) => {
             event!(Level::ERROR, "打开数据库失败: {:?}", e);
-            return;
+            return Ok(());
         }
     };
+    // conn.transaction()
+
+    Ok(())
 }
 
 fn open_db(db_path: &PathBuf) -> Result<Connection> {
