@@ -6,5 +6,7 @@ authors = ["shenjackyuanjie <3695888@qq.com>"]
 
 [dependencies]
 anyhow = { version = "1.0.86", features = ["backtrace"] }
+colored = "2.1.0"
+rusqlite = { version = "0.32.1", features = ["bundled"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
