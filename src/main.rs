@@ -50,7 +50,7 @@ fn main() -> Result<()> {
         }
         let table_name = table_name.unwrap();
         event!(Level::DEBUG, "找到表: {}", table_name);
-        if !table_name.contains("$") {
+        if !table_name.contains("$") && (table_name.contains("group") || table_name.contains("buddy")) {
             // 随便选一个出来
             let mut stmt = conn.prepare(&format!("SELECT * FROM {} LIMIT 3", table_name))?;
             let rows = stmt.query_map([], |row| {
@@ -67,7 +67,7 @@ fn main() -> Result<()> {
                 }
                 let row = row.unwrap();
                 let data = row.decode();
-                event!(Level::DEBUG, "找到数据: {}", data);
+                event!(Level::INFO, "找到数据: {}", data);
             }
         }
     }
