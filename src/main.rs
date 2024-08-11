@@ -15,8 +15,12 @@ fn main() -> Result<()> {
     let db_path = PathBuf::from({
         let mut args = std::env::args();
         args.next().unwrap();
-        args.next()
-            .unwrap_or_else(|| { panic!("{}", "db path not provided, usage: db path".red().to_string()) })
+        args.next().unwrap_or_else(|| {
+            panic!(
+                "{}",
+                "db path not provided, usage: db path".red().to_string()
+            )
+        })
     });
     // 打印日志
     event!(Level::INFO, "正在转换 {:?} 数据库", db_path);
@@ -79,30 +83,47 @@ fn main() -> Result<()> {
             continue;
         }
         let table_name = table_name.unwrap();
-        if !table_name.contains("$") && (table_name.contains("group") || table_name.contains("buddy")) {
+        if !table_name.contains("$")
+            && (table_name.contains("group") || table_name.contains("buddy"))
+        {
             if table_name.contains("buddy") {
                 // 检验是不是在好友列表里
-                let uin = table_name.split('_').last().unwrap().parse::<u64>().unwrap();
+                let uin = table_name
+                    .split('_')
+                    .last()
+                    .unwrap()
+                    .parse::<u64>()
+                    .unwrap();
                 if !friends.contains(&uin) {
                     // 警告
-                    event!(Level::WARN, "好友表 {} 不在好友列表里", table_name);
+                    // event!(Level::WARN, "好友表 {} 不在好友列表里", table_name);
                 }
             }
             if table_name.contains("group") {
                 // 检验是不是在群列表里
-                let uin = table_name.split('_').last().unwrap().parse::<u64>().unwrap();
+                let uin = table_name
+                    .split('_')
+                    .last()
+                    .unwrap()
+                    .parse::<u64>()
+                    .unwrap();
                 if !groups.contains(&uin) {
                     // 警告
                     // 截出后6位, 然后 contains 检测
                     let uin = uin.to_string();
-                    let uin = &uin[uin.len() - 5..];
+                    let uin = &uin[uin.len() - 6..];
                     let new_uin = uin.parse::<u64>().unwrap();
-                    let finds = groups.iter().filter(|&&x| x.to_string().contains(&new_uin.to_string())).collect::<Vec<_>>();
-                    println!("{table_name} {:?}", finds);
-                    // event!(Level::WARN, "群表 {} 不在群列表里, 找到可能匹配的: {:?}", table_name, finds);
+                    let finds = groups
+                        .iter()
+                        .filter(|&&x| x.to_string().contains(&new_uin.to_string()))
+                        .collect::<Vec<_>>();
+                    // if !finds.is_empty() {
+                    //     println!("{table_name} {:?}", finds);
+                    // }
+                    event!(Level::WARN, "群表 {} 不在群列表里, 找到可能匹配的: {:?}", table_name, finds);
                 }
             }
-            // event!(Level::DEBUG, "找到表: {}", table_name);
+            event!(Level::DEBUG, "找到表: {}", table_name);
             // 随便选一个出来
             let mut stmt = conn.prepare(&format!("SELECT * FROM {} limit 50", table_name))?;
             // let mut stmt = conn.prepare(&format!("SELECT * FROM {}", table_name))?;

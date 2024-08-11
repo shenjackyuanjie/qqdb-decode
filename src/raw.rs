@@ -123,9 +123,9 @@ impl RawData {
                                     );
                                 }
                             }
-                            _ => {
+                            // _ => {
 
-                            }
+                            // }
                             0x01 => {
                                 let text = String::from_utf16_lossy(
                                     &payload[inner_ptr..inner_ptr + len as usize]
@@ -133,7 +133,7 @@ impl RawData {
                                         .map(|x: &[u8]| u16::from_le_bytes(x.try_into().unwrap()))
                                         .collect::<Vec<u16>>(),
                                 );
-                                // println!("{}", format!("text: {}", text).green());
+                                println!("{}", format!("text: {}", text).green());
                             }
                             0x02 => {
                                 // 网址后面的第一个
@@ -159,9 +159,13 @@ impl RawData {
                             }
                             0x06 => {
                                 // 一个 @ 后面的东西
+                                // 8~11 位是 QQ 号?
+                                let possible_uin = u32::from_be_bytes(
+                                    payload[inner_ptr + 7..inner_ptr + 11].try_into().unwrap(),
+                                );
                                 println!(
                                     "{}",
-                                    format!("@: {:?}", &payload[inner_ptr..inner_ptr + len as usize])
+                                    format!("@({len}): {:?} {possible_uin}", &payload[inner_ptr..inner_ptr + len as usize])
                                         .yellow()
                                 )
                             }
