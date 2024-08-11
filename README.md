@@ -2,7 +2,9 @@
 
 简称:
 
-https://github.com/saucer-man/qq_msg_decode 但是 Rewrite in Rust
+[qq_msg_decode](https://github.com/saucer-man/qq_msg_decode) 但是 Rewrite in Rust
+
+感谢 icalingua 现任维护者 和他的 [oicq-icalingua-plus-plus](https://github.com/Icalingua-plus-plus/oicq-icalingua-plus-plus/blob/a8fa0e6e2448a626491cf365e1beb23f2e82a509/lib/message/parser.js#L187)
 
 ## 用法
 
