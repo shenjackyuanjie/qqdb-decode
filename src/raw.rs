@@ -1,6 +1,5 @@
 use colored::Colorize;
 use tracing::{event, Level};
-use tracing_subscriber::fmt::format;
 
 /*
 字段 Time 类型是 INTEGER
@@ -22,6 +21,13 @@ pub struct RawData {
     /// Info: BLOB
     pub info: Vec<u8>,
 }
+
+const TEXT_TYPE0: [u8; 47] = [
+    84, 68, 1, 1, 1, 0, 1, 30, 0, 131, 225, 181, 225, 132, 225, 153, 225, 149, 225, 175, 225, 132,
+    225, 132, 225, 133, 225, 168, 225, 143, 225, 133, 225, 132, 225, 143, 225, 149, 225, 4, 0, 0,
+    0, 1, 0, 0, 0,
+];
+const TEXT_TYPE8: [u8; 8] = [0, 1, 0, 4, 82, 204, 245, 208];
 
 impl RawData {
     pub fn new(time: i64, rand: i64, sender_uin: i64, msg_content: Vec<u8>, info: Vec<u8>) -> Self {
@@ -88,27 +94,106 @@ impl RawData {
             match payload_type {
                 0x01 => {
                     // UTF-16 的文本
-                    if type_ != 0x01 {
-                        continue;
-                    }
-                    let len = u16::from_le_bytes(payload[1..3].try_into().unwrap());
-                    let text = String::from_utf16_lossy(
-                        &payload[3..3 + len as usize]
-                            .chunks_exact(2)
-                            .map(|x: &[u8]| u16::from_le_bytes(x.try_into().unwrap()))
-                            .collect::<Vec<u16>>(),
-                    );
-                    if len != payload_len - 3 {
-                        println!(
-                            "{}",
-                            format!("text: {} len:{} fulllen: {}", text, len, payload_len - 3)
+                    // 理论上是文本
+                    let mut inner_ptr = 0;
+                    loop {
+                        if inner_ptr >= payload.len() {
+                            break;
+                        }
+                        let inner_type = payload[inner_ptr];
+                        inner_ptr += 1;
+                        let len = u16::from_le_bytes([payload[inner_ptr], payload[inner_ptr + 1]]);
+                        inner_ptr += 2;
+                        match inner_type {
+                            0x00 => {
+                                // 这是啥?
+                                // 比对一下和 const 的区别，不一样再 print
+                                // 可忽略
+                                if payload[inner_ptr..inner_ptr + len as usize] != TEXT_TYPE0 {
+                                    println!(
+                                        "{}",
+                                        format!(
+                                            "type: {}, len: {}, payload_len: {} raw: {:?}",
+                                            inner_type,
+                                            len,
+                                            payload_len,
+                                            &payload[inner_ptr..inner_ptr + len as usize]
+                                        )
+                                        .red()
+                                    );
+                                }
+                            }
+                            _ => {
+
+                            }
+                            0x01 => {
+                                let text = String::from_utf16_lossy(
+                                    &payload[inner_ptr..inner_ptr + len as usize]
+                                        .chunks_exact(2)
+                                        .map(|x: &[u8]| u16::from_le_bytes(x.try_into().unwrap()))
+                                        .collect::<Vec<u16>>(),
+                                );
+                                // println!("{}", format!("text: {}", text).green());
+                            }
+                            0x02 => {
+                                // 网址后面的第一个
+                                // println!("{len} {}", format!("url: {:?}", &payload[inner_ptr..inner_ptr + len as usize]).blue());
+                                // 试试 utf8?
+                                let text = String::from_utf8_lossy(
+                                    &payload[inner_ptr..inner_ptr + len as usize],
+                                );
+                                // println!("{len} {}", format!("url: {}", text).blue());
+                            }
+                            0x03 => {
+                                // 网址后面的第二个
+                                // 字符串?
+                                // platform (似乎是常量)
+                                // 可忽略
+                                let text = String::from_utf16_lossy(
+                                    &payload[inner_ptr..inner_ptr + len as usize]
+                                        .chunks_exact(2)
+                                        .map(|x: &[u8]| u16::from_le_bytes(x.try_into().unwrap()))
+                                        .collect::<Vec<u16>>(),
+                                );
+                                // println!("{}", format!("url: {}", text).purple());
+                            }
+                            0x06 => {
+                                // 一个 @ 后面的东西
+                                println!(
+                                    "{}",
+                                    format!("@: {:?}", &payload[inner_ptr..inner_ptr + len as usize])
+                                        .yellow()
+                                )
+                            }
+                            0x08 => {
+                                // 这又是啥
+                                if payload[inner_ptr..inner_ptr + len as usize] != TEXT_TYPE8 {
+                                    println!(
+                                        "{}",
+                                        format!(
+                                            "type: {}, len: {}, payload_len: {} raw: {:?}",
+                                            inner_type,
+                                            len,
+                                            payload_len,
+                                            &payload[inner_ptr..inner_ptr + len as usize]
+                                        )
+                                        .red()
+                                    );
+                                }
+                            }
+                            _ => println!(
+                                "{}",
+                                format!(
+                                    "type: {}, len: {}, payload_len: {} raw: {:?}",
+                                    inner_type,
+                                    len,
+                                    payload_len,
+                                    &payload[inner_ptr..inner_ptr + len as usize]
+                                )
                                 .red()
-                        );
-                        // 再取一个字节看看是啥
-                        let new_type = payload[3 + len as usize];
-                        println!("new_type: {}", new_type);
-                    } else {
-                        println!("text: {} len:{} fulllen: {}", text, len, payload_len - 3);
+                            ),
+                        }
+                        inner_ptr += len as usize;
                     }
                 }
                 0x02 => {
@@ -121,7 +206,7 @@ impl RawData {
                     for byte in payload[3..3 + len as usize].iter() {
                         id = (id << 8) | *byte as u64;
                     }
-                    println!("{}", format!("表情: {}", id).green());
+                    // println!("{}", format!("表情: {}", id).green());
                 }
                 0x03 => {
                     // 群图片
