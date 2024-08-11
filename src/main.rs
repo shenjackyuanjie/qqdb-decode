@@ -5,6 +5,7 @@ use colored::Colorize;
 use rusqlite::Connection;
 use tracing::{event, Level};
 
+mod elements;
 mod raw;
 
 fn main() -> Result<()> {
@@ -120,7 +121,12 @@ fn main() -> Result<()> {
                     // if !finds.is_empty() {
                     //     println!("{table_name} {:?}", finds);
                     // }
-                    event!(Level::WARN, "群表 {} 不在群列表里, 找到可能匹配的: {:?}", table_name, finds);
+                    event!(
+                        Level::WARN,
+                        "群表 {} 不在群列表里, 找到可能匹配的: {:?}",
+                        table_name,
+                        finds
+                    );
                 }
             }
             event!(Level::DEBUG, "找到表: {}", table_name);

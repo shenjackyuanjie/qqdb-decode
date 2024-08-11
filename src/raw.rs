@@ -1,5 +1,7 @@
 use colored::Colorize;
-use tracing::{event, Level};
+// use tracing::{event, Level};
+
+use crate::elements::TextElement;
 
 /*
 字段 Time 类型是 INTEGER
@@ -95,6 +97,8 @@ impl RawData {
                 0x01 => {
                     // UTF-16 的文本
                     // 理论上是文本
+                    // 实际上还是一堆东西拼起来的
+                    let texts: Vec<TextElement> = Vec::new();
                     let mut inner_ptr = 0;
                     loop {
                         if inner_ptr >= payload.len() {
@@ -137,12 +141,15 @@ impl RawData {
                             }
                             0x02 => {
                                 // 网址后面的第一个
-                                // println!("{len} {}", format!("url: {:?}", &payload[inner_ptr..inner_ptr + len as usize]).blue());
-                                // 试试 utf8?
-                                let text = String::from_utf8_lossy(
-                                    &payload[inner_ptr..inner_ptr + len as usize],
+                                // 字符串?
+                                // 试试 utf16
+                                let text = String::from_utf16_lossy(
+                                    &payload[inner_ptr..inner_ptr + len as usize]
+                                        .chunks_exact(2)
+                                        .map(|x: &[u8]| u16::from_be_bytes(x.try_into().unwrap()))
+                                        .collect::<Vec<u16>>(),
                                 );
-                                // println!("{len} {}", format!("url: {}", text).blue());
+                                println!("{len} {}", format!("url: {}", text).blue());
                             }
                             0x03 => {
                                 // 网址后面的第二个
@@ -155,18 +162,22 @@ impl RawData {
                                         .map(|x: &[u8]| u16::from_le_bytes(x.try_into().unwrap()))
                                         .collect::<Vec<u16>>(),
                                 );
-                                // println!("{}", format!("url: {}", text).purple());
+                                println!("{}", format!("url: {}", text).purple());
                             }
                             0x06 => {
                                 // 一个 @ 后面的东西
                                 // 8~11 位是 QQ 号?
+                                // 确实是
                                 let possible_uin = u32::from_be_bytes(
                                     payload[inner_ptr + 7..inner_ptr + 11].try_into().unwrap(),
                                 );
                                 println!(
                                     "{}",
-                                    format!("@({len}): {:?} {possible_uin}", &payload[inner_ptr..inner_ptr + len as usize])
-                                        .yellow()
+                                    format!(
+                                        "@({len}): {:?} {possible_uin}",
+                                        &payload[inner_ptr..inner_ptr + len as usize]
+                                    )
+                                    .yellow()
                                 )
                             }
                             0x08 => {
