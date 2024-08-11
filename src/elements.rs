@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 pub type Uin = u32;
 
@@ -8,7 +8,7 @@ pub enum TextElement {
 }
 
 impl TextElement {
-    pub fn from_raw_text(text: String) -> Self {
+    pub fn from_text(text: String) -> Self {
         TextElement::RawText(text)
     }
 
@@ -57,6 +57,13 @@ impl Display for TextElement {
             }
         }
     }
+}
+
+impl Debug for TextElement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
+    
 }
 
 #[cfg(test)]
